@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>16kHz wav converter</title>
+</head>
+
+<body>
+  <div>
+    <h1>16kHz wav converter</h1>
+    <p id="message">Select audio file</p>
+    <input type="file" id="audio" />
+  </div>
+  <script src="node_modules/@ffmpeg/ffmpeg/dist/ffmpeg.min.js"></script>
+  <script>
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    let ffmpeg = null;
+
+    const convert16khz = async ({ target: { files } }) => {
+      if (ffmpeg === null) {
+        ffmpeg = createFFmpeg({ log: true });
+      }
+
+      const { name } = files[0]
+      const message = document.getElementById("message");
+      message.innerHTML = "Loading ffmpeg-core.js...";
+
+      if (!ffmpeg.isLoaded()) {
+        await ffmpeg.load();
+      }
+
+      ffmpeg.FS("writeFile", name, await fetchFile(files[0]));
+      message.innerHTML = `Start convert 16kHz: ${name}`;
+
+      const outputFileName = `${name}_16khz.wav`;
+      await ffmpeg.run("-i", name, "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", outputFileName);
+      message.innerHTML = `Complete convert: ${outputFileName}`;
+
+      const data = ffmpeg.FS("readFile", outputFileName);
+      const downloadLink = document.createElement("a");
+      const downloadUrl = URL.createObjectURL(new Blob([data.buffer], { type: "audio/wav" }));
+      downloadLink.href = downloadUrl;
+      downloadLink.download = outputFileName;
+      downloadLink.click();
+    }
+
+    document.getElementById("audio").addEventListener("change", convert16khz)
+  </script>
+</body>
+
+</html>
